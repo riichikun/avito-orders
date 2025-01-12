@@ -41,6 +41,19 @@ return static function (FrameworkConfig $framework) {
         ->multiplier(3)
         ->service(null);
 
+
+    $messenger
+        ->transport('avito-orders-low')
+        ->dsn('%env(MESSENGER_TRANSPORT_DSN)%')
+        ->options(['queue_name' => 'avito-orders'])
+        ->failureTransport('failed-avito-orders')
+        ->retryStrategy()
+        ->maxRetries(1)
+        ->delay(1000)
+        ->maxDelay(1)
+        ->multiplier(2)
+        ->service(null);
+
     $failure = $framework->messenger();
 
     $failure->transport('failed-avito-orders')
