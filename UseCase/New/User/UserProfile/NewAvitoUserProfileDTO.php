@@ -1,0 +1,115 @@
+<?php
+/*
+ *  Copyright 2026.  Baks.dev <admin@baks.dev>
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the "Software"), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is furnished
+ *  to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in all
+ *  copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *  THE SOFTWARE.
+ */
+
+declare(strict_types=1);
+
+namespace BaksDev\Avito\Orders\UseCase\New\User\UserProfile;
+
+use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Info\NewAvitoUserProfileInfoDTO;
+use BaksDev\Users\Profile\TypeProfile\Type\Id\TypeProfileUid;
+use BaksDev\Users\Profile\UserProfile\Entity\Event\UserProfileEventInterface;
+use BaksDev\Users\Profile\UserProfile\Type\Event\UserProfileEventUid;
+use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Value\NewAvitoUserProfileValueDTO;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Validator\Constraints as Assert;
+
+final class NewAvitoUserProfileDTO implements UserProfileEventInterface
+{
+    #[Assert\Uuid]
+    private ?UserProfileEventUid $id = null;
+
+    /** Тип профиля */
+    #[Assert\NotBlank]
+    #[Assert\Uuid]
+    private ?TypeProfileUid $type = null;
+
+    /** Значения профиля */
+    #[Assert\Valid]
+    private ArrayCollection $value;
+
+    /** Информация профиля */
+    private NewAvitoUserProfileInfoDTO $info;
+
+
+    public function __construct()
+    {
+        $this->value = new ArrayCollection();
+        $this->info = new NewAvitoUserProfileInfoDTO();
+    }
+
+    /* EVENT */
+
+    public function getEvent(): ?UserProfileEventUid
+    {
+        return $this->id;
+    }
+
+    /** Тип профиля */
+
+    public function setType(?TypeProfileUid $type): self
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    public function getType(): ?TypeProfileUid
+    {
+        return $this->type;
+    }
+
+
+    /** Информация профиля */
+
+    public function getInfo(): NewAvitoUserProfileInfoDTO
+    {
+        return $this->info;
+    }
+
+
+    /** Значения профиля */
+
+    public function getValue(): ArrayCollection
+    {
+        return $this->value;
+    }
+
+    public function resetValue(): self
+    {
+        $this->value = new ArrayCollection();
+        return $this;
+    }
+
+
+    public function addValue(NewAvitoUserProfileValueDTO $value): self
+    {
+        $this->value->add($value);
+        return $this;
+    }
+
+
+    public function removeValue(NewAvitoUserProfileValueDTO $value): self
+    {
+        $this->value->removeElement($value);
+        return $this;
+    }
+}

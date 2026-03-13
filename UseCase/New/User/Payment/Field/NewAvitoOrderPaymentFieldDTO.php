@@ -23,17 +23,48 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders;
+namespace BaksDev\Avito\Orders\UseCase\New\User\Payment\Field;
 
-use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use BaksDev\Orders\Order\Entity\User\Payment\Field\OrderPaymentFieldInterface;
+use BaksDev\Payment\Type\Field\PaymentFieldUid;
+use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * @note Индекс сортировки 440
- */
-class BaksDevAvitoOrdersBundle extends AbstractBundle
+final class NewAvitoOrderPaymentFieldDTO implements OrderPaymentFieldInterface
 {
-    public const string NAMESPACE = __NAMESPACE__.'\\';
+    /** Идентификатор пользовательского поля в способе оплаты */
+    #[Assert\NotBlank]
+    private PaymentFieldUid $field;
 
-    public const string PATH = __DIR__.DIRECTORY_SEPARATOR;
+    /** Заполненное значение */
+    #[Assert\Valid]
+    private string $value;
 
+
+    /** Идентификатор пользовательского поля в способе оплаты */
+
+    public function getField(): PaymentFieldUid
+    {
+        return $this->field;
+    }
+
+
+    public function setField(PaymentFieldUid $field): self
+    {
+        $this->field = $field;
+        return $this;
+    }
+
+
+    /** Заполненное значение */
+
+    public function getValue(): string
+    {
+        return $this->value;
+    }
+
+    public function setValue(string $value): self
+    {
+        $this->value = $value;
+        return $this;
+    }
 }

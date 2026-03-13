@@ -1,6 +1,6 @@
 <?php
 /*
- *  Copyright 2024.  Baks.dev <admin@baks.dev>
+ * Copyright 2026.  Baks.dev <admin@baks.dev>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,28 @@
  *  THE SOFTWARE.
  */
 
-namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+declare(strict_types=1);
 
-use BaksDev\Avito\Orders\BaksDevAvitoOrdersBundle;
+namespace BaksDev\Avito\Orders\Api\Get\OrdersInfo\Product;
 
-return static function (ContainerConfigurator $configurator) {
+use BaksDev\Reference\Money\Type\Money;
 
-    $services = $configurator->services()
-        ->defaults()
-        ->autowire()
-        ->autoconfigure(); //->public();
+final readonly class AvitoGetOrdersInfoProductDTO
+{
+    public function __construct(private string $article, private Money $totalPrice, private int $count) {}
 
-    $NAMESPACE = BaksDevAvitoOrdersBundle::NAMESPACE;
-    $PATH = BaksDevAvitoOrdersBundle::PATH;
+    public function getArticle(): string
+    {
+        return $this->article;
+    }
 
-    $services->load($NAMESPACE, $PATH)
-        ->exclude([
-            $PATH.'{Entity,Resources,Type}',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Message.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Result.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*DTO.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Test.php',
-        ]);
-};
+    public function getTotalPrice(): Money
+    {
+        return $this->totalPrice;
+    }
+
+    public function getCount(): int
+    {
+        return $this->count;
+    }
+}
