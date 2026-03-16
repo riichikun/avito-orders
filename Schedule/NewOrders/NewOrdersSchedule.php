@@ -1,6 +1,6 @@
 <?php
 /*
- *  Copyright 2024.  Baks.dev <admin@baks.dev>
+ *  Copyright 2026.  Baks.dev <admin@baks.dev>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,36 @@
  *  THE SOFTWARE.
  */
 
-namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+declare(strict_types=1);
 
-use BaksDev\Avito\Orders\BaksDevAvitoOrdersBundle;
+namespace BaksDev\Avito\Orders\Schedule\NewOrders;
 
-return static function (ContainerConfigurator $configurator) {
+use BaksDev\Core\Schedule\ScheduleInterface;
+use DateInterval;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-    $services = $configurator->services()
-        ->defaults()
-        ->autowire()
-        ->autoconfigure(); //->public();
+/**
+ * Проверяем новые заказы Avito каждые 5 минут
+ */
+#[AutoconfigureTag('baks.schedule')]
+final class NewOrdersSchedule implements ScheduleInterface
+{
+    public const string INTERVAL = '45 seconds';
 
-    $NAMESPACE = BaksDevAvitoOrdersBundle::NAMESPACE;
-    $PATH = BaksDevAvitoOrdersBundle::PATH;
+    /**
+     * Возвращает класс сообщение
+     */
+    public function getMessage(): object
+    {
+        return new NewOrdersScheduleMessage();
+    }
 
-    $services->load($NAMESPACE, $PATH)
-        ->exclude([
-            $PATH.'{Entity,Resources,Type}',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Message.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Result.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*DTO.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Test.php',
-        ]);
-};
+    /**
+     * Интервал повтора
+     * @see https://www.php.net/manual/en/dateinterval.createfromdatestring.php
+     */
+    public function getInterval(): DateInterval
+    {
+        return DateInterval::createFromDateString(self::INTERVAL);
+    }
+}

@@ -1,6 +1,6 @@
 <?php
 /*
- *  Copyright 2024.  Baks.dev <admin@baks.dev>
+ *  Copyright 2026.  Baks.dev <admin@baks.dev>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,30 @@
  *  THE SOFTWARE.
  */
 
-namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+declare(strict_types=1);
 
-use BaksDev\Avito\Orders\BaksDevAvitoOrdersBundle;
+namespace BaksDev\Avito\Orders\UseCase\New\User\UserAccount\Status;
 
-return static function (ContainerConfigurator $configurator) {
+use BaksDev\Auth\Email\Entity\Status\AccountStatusInterface;
+use BaksDev\Auth\Email\Type\EmailStatus\EmailStatus;
+use BaksDev\Auth\Email\Type\EmailStatus\Status\EmailStatusNew;
+use Symfony\Component\Validator\Constraints as Assert;
 
-    $services = $configurator->services()
-        ->defaults()
-        ->autowire()
-        ->autoconfigure(); //->public();
+final readonly class NewAvitoUserAccountStatusDTO implements AccountStatusInterface
+{
+    #[Assert\NotBlank]
+    private EmailStatus $status;
 
-    $NAMESPACE = BaksDevAvitoOrdersBundle::NAMESPACE;
-    $PATH = BaksDevAvitoOrdersBundle::PATH;
+    public function __construct()
+    {
+        $this->status = new EmailStatus(EmailStatusNew::class);
+    }
 
-    $services->load($NAMESPACE, $PATH)
-        ->exclude([
-            $PATH.'{Entity,Resources,Type}',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Message.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Result.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*DTO.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Test.php',
-        ]);
-};
+    /**
+     * @return EmailStatus
+     */
+    public function getStatus(): EmailStatus
+    {
+        return $this->status;
+    }
+}

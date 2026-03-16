@@ -1,6 +1,6 @@
 <?php
 /*
- *  Copyright 2024.  Baks.dev <admin@baks.dev>
+ *  Copyright 2026.  Baks.dev <admin@baks.dev>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,28 @@
  *  THE SOFTWARE.
  */
 
-namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+declare(strict_types=1);
 
-use BaksDev\Avito\Orders\BaksDevAvitoOrdersBundle;
+namespace BaksDev\Avito\Orders\UseCase\New\Posting;
 
-return static function (ContainerConfigurator $configurator) {
+use BaksDev\Orders\Order\Entity\Event\Posting\OrderPostingInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 
-    $services = $configurator->services()
-        ->defaults()
-        ->autowire()
-        ->autoconfigure(); //->public();
+/** @see NewAvitoOrderPosting */
+final class NewAvitoOrderPostingDTO implements OrderPostingInterface
+{
+    /** Значение свойства */
+    #[Assert\NotBlank]
+    private ?string $value = null;
 
-    $NAMESPACE = BaksDevAvitoOrdersBundle::NAMESPACE;
-    $PATH = BaksDevAvitoOrdersBundle::PATH;
+    public function getValue(): ?string
+    {
+        return $this->value;
+    }
 
-    $services->load($NAMESPACE, $PATH)
-        ->exclude([
-            $PATH.'{Entity,Resources,Type}',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Message.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Result.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*DTO.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Test.php',
-        ]);
-};
+    public function setValue(string $value): self
+    {
+        $this->value = $value;
+        return $this;
+    }
+}
