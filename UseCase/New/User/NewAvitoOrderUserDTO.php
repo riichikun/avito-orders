@@ -25,13 +25,13 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\UseCase\New\User;
 
+use BaksDev\Avito\Orders\UseCase\New\User\Delivery\NewAvitoOrderDeliveryDTO;
+use BaksDev\Avito\Orders\UseCase\New\User\Payment\NewAvitoOrderPaymentDTO;
 use BaksDev\Avito\Orders\UseCase\New\User\UserAccount\NewAvitoUserAccountDTO;
 use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\NewAvitoUserProfileDTO;
 use BaksDev\Orders\Order\Entity\User\OrderUserInterface;
 use BaksDev\Users\Profile\UserProfile\Type\Event\UserProfileEventUid;
 use BaksDev\Users\User\Type\Id\UserUid;
-use BaksDev\Avito\Orders\UseCase\New\User\Delivery\NewAvitoOrderDeliveryDTO;
-use BaksDev\Avito\Orders\UseCase\New\User\Payment\NewAvitoOrderPaymentDTO;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final class NewAvitoOrderUserDTO implements OrderUserInterface

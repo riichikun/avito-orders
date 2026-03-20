@@ -26,10 +26,10 @@ declare(strict_types=1);
 namespace BaksDev\Avito\Orders\UseCase\New\User\UserProfile;
 
 use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Info\NewAvitoUserProfileInfoDTO;
+use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Value\NewAvitoUserProfileValueDTO;
 use BaksDev\Users\Profile\TypeProfile\Type\Id\TypeProfileUid;
 use BaksDev\Users\Profile\UserProfile\Entity\Event\UserProfileEventInterface;
 use BaksDev\Users\Profile\UserProfile\Type\Event\UserProfileEventUid;
-use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Value\NewAvitoUserProfileValueDTO;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
 

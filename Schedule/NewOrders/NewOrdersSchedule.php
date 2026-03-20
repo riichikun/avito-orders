@@ -35,7 +35,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag('baks.schedule')]
 final class NewOrdersSchedule implements ScheduleInterface
 {
-    public const string INTERVAL = '45 seconds';
+    public const string INTERVAL = '5 seconds';
 
     /**
      * Возвращает класс сообщение
@@ -47,6 +47,7 @@ final class NewOrdersSchedule implements ScheduleInterface
 
     /**
      * Интервал повтора
+     *
      * @see https://www.php.net/manual/en/dateinterval.createfromdatestring.php
      */
     public function getInterval(): DateInterval

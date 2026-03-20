@@ -25,11 +25,11 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\UseCase\New\Products\Items;
 
+use BaksDev\Avito\Orders\UseCase\New\Products\Items\Access\NewAvitoOrderProductItemAccessDTO;
+use BaksDev\Avito\Orders\UseCase\New\Products\Items\Price\NewAvitoOrderProductItemPriceDTO;
 use BaksDev\Orders\Order\Entity\Items\OrderProductItemInterface;
 use BaksDev\Orders\Order\Type\Items\Const\OrderProductItemConst;
 use BaksDev\Orders\Order\Type\Items\OrderProductItemUid;
-use BaksDev\Avito\Orders\UseCase\New\Products\Items\Access\NewAvitoOrderProductItemAccessDTO;
-use BaksDev\Avito\Orders\UseCase\New\Products\Items\Price\NewAvitoOrderProductItemPriceDTO;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /** @see OrderProductItem */

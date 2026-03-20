@@ -25,4 +25,4 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\Schedule\NewOrders;
 
-final class NewOrdersScheduleMessage {}
+final class NewOrdersScheduleMessage { }

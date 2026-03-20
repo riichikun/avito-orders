@@ -23,10 +23,10 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders\Commands\Upgrade\FBS;
+namespace BaksDev\Avito\Orders\Commands\Upgrade\Pickup;
 
-use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentFbsAvito;
-use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileFbsAvito;
+use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentPickupAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfilePickupAvito;
 use BaksDev\Payment\Entity\Payment;
 use BaksDev\Payment\Repository\ExistTypePayment\ExistTypePaymentInterface;
 use BaksDev\Payment\Type\Id\Choice\TypePaymentCache;
@@ -43,10 +43,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsCommand(
-    name: 'baks:payment:avito-fbs',
-    description: 'Добавляет способ оплаты FBS Avito'
+    name: 'baks:payment:avito-pickup',
+    description: 'Добавляет способ оплаты Самовывоз Avito'
 )]
-class UpgradePaymentTypeFbsAvitoCommand extends Command
+class UpgradePaymentTypePickupAvitoCommand extends Command
 {
     public function __construct(
         private readonly ExistTypePaymentInterface $existTypePayment,
@@ -60,7 +60,7 @@ class UpgradePaymentTypeFbsAvitoCommand extends Command
     /** Добавляет способ оплаты Avito  */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $PaymentUid = new PaymentUid(TypePaymentFbsAvito::class);
+        $PaymentUid = new PaymentUid(TypePaymentPickupAvito::class);
 
         /** Проверяем наличие способа оплаты Avito */
         $exists = $this->existTypePayment->isExists($PaymentUid);
@@ -68,11 +68,11 @@ class UpgradePaymentTypeFbsAvitoCommand extends Command
         if(!$exists)
         {
             $io = new SymfonyStyle($input, $output);
-            $io->text('Добавляем способ оплаты Avito');
+            $io->text('Добавляем способ оплаты Самовывоз Avito');
 
             $PaymentDTO = new PaymentDTO($PaymentUid);
-            $PaymentDTO->setType(new TypeProfileUid(TypeProfileFbsAvito::class));
-            $PaymentDTO->setSort(TypePaymentFbsAvito::priority());
+            $PaymentDTO->setType(new TypeProfileUid(TypeProfilePickupAvito::class));
+            $PaymentDTO->setSort(TypePaymentPickupAvito::priority());
 
 
             $PaymentTransDTO = $PaymentDTO->getTranslate();
@@ -84,8 +84,8 @@ class UpgradePaymentTypeFbsAvitoCommand extends Command
              */
             foreach($PaymentTransDTO as $PaymentTrans)
             {
-                $name = $this->translator->trans('avito.fbs.name', domain: 'payment.type', locale: $PaymentTrans->getLocal()->getLocalValue());
-                $desc = $this->translator->trans('avito.fbs.desc', domain: 'payment.type', locale: $PaymentTrans->getLocal()->getLocalValue());
+                $name = $this->translator->trans('avito.pickup.name', domain: 'payment.type', locale: $PaymentTrans->getLocal()->getLocalValue());
+                $desc = $this->translator->trans('avito.pickup.desc', domain: 'payment.type', locale: $PaymentTrans->getLocal()->getLocalValue());
 
                 $PaymentTrans->setName($name);
                 $PaymentTrans->setDescription($desc);

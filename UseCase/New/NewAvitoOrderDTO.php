@@ -27,16 +27,16 @@ namespace BaksDev\Avito\Orders\UseCase\New;
 
 use BaksDev\Avito\Orders\UseCase\New\Invariable\NewAvitoOrderInvariableDTO;
 use BaksDev\Avito\Orders\UseCase\New\Posting\NewAvitoOrderPostingDTO;
+use BaksDev\Avito\Orders\UseCase\New\Products\NewAvitoOrderProductDTO;
 use BaksDev\Avito\Orders\UseCase\New\User\NewAvitoOrderUserDTO;
 use BaksDev\Orders\Order\Entity\Event\OrderEventInterface;
 use BaksDev\Orders\Order\Type\Event\OrderEventUid;
 use BaksDev\Orders\Order\Type\Status\OrderStatus;
 use BaksDev\Orders\Order\Type\Status\OrderStatus\Collection\OrderStatusNew;
 use BaksDev\Orders\Order\Type\Status\OrderStatus\OrderStatusInterface;
-use BaksDev\Avito\Orders\UseCase\New\Products\NewAvitoOrderProductDTO;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
-use DateTimeImmutable;
 
 /** @see OrderEvent */
 final class NewAvitoOrderDTO implements OrderEventInterface

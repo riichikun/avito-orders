@@ -40,6 +40,8 @@ final class AvitoGetOrdersInfoDTO
 
     private ?string $address = null;
 
+    private ?string $number = null;
+
     private ?string $posting = null;
 
     private ?string $buyerName = null;
@@ -48,7 +50,9 @@ final class AvitoGetOrdersInfoDTO
 
     private DateTimeImmutable $deliveryDate;
 
-    private ?string $pvzAddress = null;
+    private ?string $type = null;
+
+    private ?string $comment = null;
 
 
     public function __construct(array $data)
@@ -69,32 +73,21 @@ final class AvitoGetOrdersInfoDTO
              * разделить на количество в комплекте, а количество умножить на это число
              */
             $kit = 1;
-            if (preg_match('/KIT(\d+)$/', $item['id'], $matches)) {
+            if(preg_match('/KIT(\d+)$/', $item['id'], $matches))
+            {
                 $kit = $matches[1];
             }
 
             $this->products->add(new AvitoGetOrdersInfoProductDTO(
                 preg_replace('/-KIT\d+$/', '', $item['id']),
                 new Money($item['prices']['total'] / $kit),
-                $item['count'] * $kit
+                $item['count'] * $kit,
             ));
         }
 
-
-        /**
-         * Address
-         */
-        if(isset($data['delivery']['courierInfo'])) {
-            $this->address = $data['delivery']['courierInfo'];
-        }
-
-        if(isset($data['delivery']['terminalInfo'])) {
-            $this->address = $data['delivery']['terminalInfo'];
-        }
-
-
         /** Постинг - это номер отслеживания, кроме случаев, когда его нет - тогда это идентификатор заказа */
-        $this->posting = isset($data['delivery']['trackingNumber']) ? $data['delivery']['trackingNumber'] : $data['id'];
+        $this->number = $data['marketplaceId'];
+        $this->posting = $data['delivery']['trackingNumber'] ?? $data['id'];
 
 
         /**
@@ -107,13 +100,35 @@ final class AvitoGetOrdersInfoDTO
         /**
          * Дата доставки
          */
-        $this->deliveryDate = new DateTimeImmutable($data['schedules']['deliveryDateMax']);
+        $this->deliveryDate = new DateTimeImmutable($data['schedules']['deliveryDateMin']);
+
+
+        // Способ доставки
+        // cnc - Самовывоз от продавца
+        $this->type = $data['delivery']['serviceType'] ?? null;
 
 
         /**
-         * Адрес ПВЗ
+         * Адрес доставки
          */
-        $this->pvzAddress = isset($data['delivery']['terminalInfo']) ? $data['delivery']['terminalInfo']['address'] : null;
+
+        $this->address = isset($data['delivery']['terminalInfo'])
+            ? $data['delivery']['terminalInfo']['address']
+            : current($data['items'])['location'];
+
+        if(isset($data['delivery']['courierInfo']))
+        {
+            $this->address = $data['delivery']['courierInfo'];
+        }
+
+        if(isset($data['delivery']['terminalInfo']))
+        {
+            $this->address = $data['delivery']['terminalInfo'];
+        }
+
+
+        $this->comment = $data['delivery']['serviceName'] ?? null;
+
     }
 
     public function getId(): string
@@ -137,9 +152,14 @@ final class AvitoGetOrdersInfoDTO
         return $this->products;
     }
 
-    public function getPosting(): ?string
+    public function getPostingNumber(): ?string
     {
         return $this->posting;
+    }
+
+    public function getOrderNumber(): ?string
+    {
+        return $this->number;
     }
 
     public function getDeliveryDate(): DateTimeImmutable
@@ -157,8 +177,13 @@ final class AvitoGetOrdersInfoDTO
         return $this->buyerNumber;
     }
 
-    public function getPvzAddress(): ?string
+    public function getType(): string
     {
-        return $this->pvzAddress;
+        return $this->type;
+    }
+
+    public function getComment(): ?string
+    {
+        return $this->comment;
     }
 }

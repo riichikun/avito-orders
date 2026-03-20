@@ -25,25 +25,26 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\Schedule\NewOrders;
 
+use BaksDev\Avito\Orders\Messenger\Schedules\NewOrders\NewAvitoOrdersScheduleMessage;
 use BaksDev\Avito\Repository\AllTokensByProfile\AvitoTokensByProfileInterface;
+use BaksDev\Avito\Repository\AllUserProfilesByActiveToken\AllProfilesByActiveTokenInterface;
 use BaksDev\Core\Messenger\MessageDelay;
 use BaksDev\Core\Messenger\MessageDispatchInterface;
-use BaksDev\Avito\Orders\Messenger\Schedules\NewOrders\NewAvitoOrdersScheduleMessage;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(priority: 0)]
 final readonly class NewOrdersScheduleHandler
 {
     public function __construct(
-        private AvitoTokensByProfileInterface $AvitoTokensByProfileRepository,
+        private AllProfilesByActiveTokenInterface $AllProfilesByActiveTokenRepository,
         private MessageDispatchInterface $MessageDispatch,
     ) {}
 
     public function __invoke(NewOrdersScheduleMessage $message): void
     {
         /** Получаем активные токены авторизации профилей */
-        $profiles = $this->AvitoTokensByProfileRepository
-            ->onlyActive()
+        $profiles = $this->AllProfilesByActiveTokenRepository
+            ->onlyActiveToken()
             ->findAll();
 
         if($profiles->valid())

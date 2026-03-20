@@ -23,38 +23,35 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders\Messenger\Schedules\NewOrders;
+namespace BaksDev\Avito\Orders\Type\PaymentType;
 
-use BaksDev\Users\Profile\UserProfile\Entity\UserProfile;
-use BaksDev\Users\Profile\UserProfile\Type\Id\UserProfileUid;
+use BaksDev\Payment\Type\Id\Choice\Collection\TypePaymentInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-final class NewAvitoOrdersScheduleMessage
+#[AutoconfigureTag('baks.payment.type')]
+final class TypePaymentPickupAvito implements TypePaymentInterface
 {
-    private bool $deduplicator = true;
+    public const string TYPE = '3344543f-4738-7e2d-82b0-9c6360fd0310';
 
-    /**
-     * Идентификатор профиля
-     */
-    private readonly string $profile;
-
-    public function __construct(UserProfile|UserProfileUid|string $profile)
+    /** Сортировка */
+    public static function priority(): int
     {
-        $this->profile = (string) $profile;
+        return 441;
     }
 
-    public function getProfile(): UserProfileUid
+    public function __toString(): string
     {
-        return new UserProfileUid($this->profile);
+        return self::TYPE;
     }
 
-    public function disableDeduplicator(): self
+    /** Возвращает значение (value) */
+    public function getValue(): string
     {
-        $this->deduplicator = false;
-        return $this;
+        return self::TYPE;
     }
 
-    public function isDeduplicator(): bool
+    public static function equals(mixed $uid): bool
     {
-        return $this->deduplicator;
+        return self::TYPE === (string) $uid;
     }
 }

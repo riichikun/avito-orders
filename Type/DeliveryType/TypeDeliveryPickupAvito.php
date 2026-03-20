@@ -1,6 +1,6 @@
 <?php
 /*
- *  Copyright 2026.  Baks.dev <admin@baks.dev>
+ *  Copyright 2024.  Baks.dev <admin@baks.dev>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,35 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders\Messenger\Schedules\NewOrders;
+namespace BaksDev\Avito\Orders\Type\DeliveryType;
 
-use BaksDev\Users\Profile\UserProfile\Entity\UserProfile;
-use BaksDev\Users\Profile\UserProfile\Type\Id\UserProfileUid;
+use BaksDev\Delivery\Type\Id\Choice\Collection\TypeDeliveryInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-final class NewAvitoOrdersScheduleMessage
+#[AutoconfigureTag('baks.delivery.type')]
+final class TypeDeliveryPickupAvito implements TypeDeliveryInterface
 {
-    private bool $deduplicator = true;
+    public const string TYPE = '37cbcf50-cfa4-7617-afb1-9623251a3f3a';
 
-    /**
-     * Идентификатор профиля
-     */
-    private readonly string $profile;
-
-    public function __construct(UserProfile|UserProfileUid|string $profile)
+    /** Сортировка */
+    public static function priority(): int
     {
-        $this->profile = (string) $profile;
+        return 441;
     }
 
-    public function getProfile(): UserProfileUid
+    public function __toString(): string
     {
-        return new UserProfileUid($this->profile);
+        return self::TYPE;
     }
 
-    public function disableDeduplicator(): self
+    /** Возвращает значение (value) */
+    public function getValue(): string
     {
-        $this->deduplicator = false;
-        return $this;
+        return self::TYPE;
     }
 
-    public function isDeduplicator(): bool
+    public static function equals(mixed $uid): bool
     {
-        return $this->deduplicator;
+        return self::TYPE === (string) $uid;
     }
 }

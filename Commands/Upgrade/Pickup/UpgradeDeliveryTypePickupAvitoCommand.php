@@ -23,11 +23,10 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders\Commands\Upgrade\DBS;
+namespace BaksDev\Avito\Orders\Commands\Upgrade\Pickup;
 
-
-use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryDbsAvito;
-use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileDbsAvito;
+use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryPickupAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfilePickupAvito;
 use BaksDev\Core\Type\Field\InputField;
 use BaksDev\Delivery\Entity\Delivery;
 use BaksDev\Delivery\Repository\ExistTypeDelivery\ExistTypeDeliveryInterface;
@@ -48,10 +47,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsCommand(
-    name: 'baks:delivery:avito-dbs',
-    description: 'Добавляет собственную доставку клиенту Avito'
+    name: 'baks:delivery:avito-pickup',
+    description: 'Добавляет курьерскую доставку Самовывоз Avito'
 )]
-class UpgradeDeliveryTypeDbsAvitoCommand extends Command
+class UpgradeDeliveryTypePickupAvitoCommand extends Command
 {
     public function __construct(
         private readonly ExistTypeDeliveryInterface $existTypeDelivery,
@@ -62,10 +61,10 @@ class UpgradeDeliveryTypeDbsAvitoCommand extends Command
         parent::__construct();
     }
 
-    /** Добавляет доставку Avito */
+    /** Добавляет доставку Avito  */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $DeliveryUid = new DeliveryUid(TypeDeliveryDbsAvito::class);
+        $DeliveryUid = new DeliveryUid(TypeDeliveryPickupAvito::class);
 
         /** Проверяем наличие доставки Avito */
         $exists = $this->existTypeDelivery->isExists($DeliveryUid);
@@ -73,12 +72,12 @@ class UpgradeDeliveryTypeDbsAvitoCommand extends Command
         if(!$exists)
         {
             $io = new SymfonyStyle($input, $output);
-            $io->text('Добавляем собственную доставку клиенту заказов DBS Avito');
+            $io->text('Добавляем курьерскую доставку Avito');
 
             $DeliveryDTO = new DeliveryDTO($DeliveryUid);
 
-            $DeliveryDTO->setType(new TypeProfileUid(TypeProfileDbsAvito::class));
-            $DeliveryDTO->setSort(TypeDeliveryDbsAvito::priority());
+            $DeliveryDTO->setType(new TypeProfileUid(TypeProfilePickupAvito::class));
+            $DeliveryDTO->setSort(TypeDeliveryPickupAvito::priority());
 
 
             /** Бесплатная доставка */
@@ -98,32 +97,31 @@ class UpgradeDeliveryTypeDbsAvitoCommand extends Command
              */
             foreach($DeliveryTransDTO as $DeliveryTrans)
             {
-                $name = $this->translator->trans('avito.dbs.name', domain: 'delivery.type', locale: $DeliveryTrans->getLocal()->getLocalValue());
-                $desc = $this->translator->trans('avito.dbs.desc', domain: 'delivery.type', locale: $DeliveryTrans->getLocal()->getLocalValue());
+                $name = $this->translator->trans('avito.pickup.name', domain: 'delivery.type', locale: $DeliveryTrans->getLocal()->getLocalValue());
+                $desc = $this->translator->trans('avito.pickup.desc', domain: 'delivery.type', locale: $DeliveryTrans->getLocal()->getLocalValue());
 
                 $DeliveryTrans->setName($name);
                 $DeliveryTrans->setDescription($desc);
             }
 
-
             /**
-             * Создаем пользовательское поле с адресом доставки
+             * Создаем пользовательское поле «Пункты выдачи товаров в регионе»
              */
             $DeliveryFieldDTO = new DeliveryFieldDTO();
             $DeliveryFieldDTO->setSort(100);
-            $DeliveryFieldDTO->setType(new InputField('address_field'));
+            $DeliveryFieldDTO->setRequired(true);
+            $DeliveryFieldDTO->setType(new InputField('contacts_region_type'));
 
             /** @var DeliveryFieldTransDTO $DeliveryFieldTrans */
             foreach($DeliveryFieldDTO->getTranslate() as $DeliveryFieldTrans)
             {
-                $name = $this->translator->trans('avito.dbs.address.name', domain: 'delivery.type', locale: $DeliveryFieldTrans->getLocal()->getLocalValue());
-                $desc = $this->translator->trans('avito.dbs.address.desc', domain: 'delivery.type', locale: $DeliveryFieldTrans->getLocal()->getLocalValue());
+                $name = $this->translator->trans('pickup.region.name', domain: 'delivery.type', locale: $DeliveryFieldTrans->getLocal()->getLocalValue());
+                $desc = $this->translator->trans('pickup.region.desc', domain: 'delivery.type', locale: $DeliveryFieldTrans->getLocal()->getLocalValue());
 
                 $DeliveryFieldTrans->setName($name);
                 $DeliveryFieldTrans->setDescription($desc);
             }
 
-            $DeliveryDTO->addField($DeliveryFieldDTO);
 
             $handle = $this->deliveryHandler->handle($DeliveryDTO);
 
