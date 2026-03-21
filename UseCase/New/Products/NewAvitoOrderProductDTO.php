@@ -26,13 +26,13 @@ declare(strict_types=1);
 namespace BaksDev\Avito\Orders\UseCase\New\Products;
 
 use BaksDev\Avito\Orders\UseCase\New\Products\Items\NewAvitoOrderProductItemDTO;
+use BaksDev\Avito\Orders\UseCase\New\Products\Price\NewAvitoNewOrderPriceDTO;
 use BaksDev\Orders\Order\Entity\Products\OrderProduct;
 use BaksDev\Orders\Order\Entity\Products\OrderProductInterface;
 use BaksDev\Products\Product\Type\Event\ProductEventUid;
 use BaksDev\Products\Product\Type\Offers\Id\ProductOfferUid;
 use BaksDev\Products\Product\Type\Offers\Variation\Id\ProductVariationUid;
 use BaksDev\Products\Product\Type\Offers\Variation\Modification\Id\ProductModificationUid;
-use BaksDev\Avito\Orders\UseCase\New\Products\Price\NewAvitoNewOrderPriceDTO;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
 

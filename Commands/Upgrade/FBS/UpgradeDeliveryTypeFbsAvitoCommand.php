@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\Commands\Upgrade\FBS;
 
+use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryFbsAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileFbsAvito;
 use BaksDev\Core\Type\Field\InputField;
 use BaksDev\Delivery\Entity\Delivery;
 use BaksDev\Delivery\Repository\ExistTypeDelivery\ExistTypeDeliveryInterface;
@@ -37,8 +39,6 @@ use BaksDev\Delivery\UseCase\Admin\NewEdit\Trans\DeliveryTransDTO;
 use BaksDev\Reference\Currency\Type\Currency;
 use BaksDev\Reference\Money\Type\Money;
 use BaksDev\Users\Profile\TypeProfile\Type\Id\TypeProfileUid;
-use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryFbsAvito;
-use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileFbsAvito;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -56,7 +56,8 @@ class UpgradeDeliveryTypeFbsAvitoCommand extends Command
         private readonly ExistTypeDeliveryInterface $existTypeDelivery,
         private readonly TranslatorInterface $translator,
         private readonly DeliveryHandler $deliveryHandler
-    ) {
+    )
+    {
         parent::__construct();
     }
 

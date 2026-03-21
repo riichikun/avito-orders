@@ -26,10 +26,10 @@ declare(strict_types=1);
 namespace BaksDev\Avito\Orders\Api\Get\OrdersInfo;
 
 use BaksDev\Avito\Api\AvitoApi;
+use DateInterval;
 use DateTimeImmutable;
 use Generator;
 use JsonException;
-use DateInterval;
 
 final class AvitoGetOrdersInfoRequest extends AvitoApi
 {
@@ -43,7 +43,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
     {
         if(empty($interval))
         {
-            $this->interval = DateInterval::createFromDateString('30 minutes');
+            $this->interval = DateInterval::createFromDateString('1 hour');
             return $this;
         }
 
@@ -77,7 +77,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
         {
             // Новые заказы за последние 30 минут (планировщик на каждую минуту)
             $this->fromDate = $dateTimeNow
-                ->sub($this->interval ?? DateInterval::createFromDateString('30 minutes'));
+                ->sub($this->interval ?? DateInterval::createFromDateString('30 hour'));
         }
 
         while(true)
@@ -86,7 +86,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
             $query = [
                 'dateFrom' => $this->fromDate->getTimestamp(),
                 'page' => $this->page,
-                'limit' => 20
+                'limit' => 20,
             ];
 
             $response = $this
@@ -94,7 +94,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
                 ->request(
                     'GET',
                     '/order-management/1/orders',
-                    ['query' => $query]
+                    ['query' => $query],
                 );
 
             try
@@ -113,7 +113,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
                     'avito-orders: Ошибка получения заказов',
                     [
                         self::class.':'.__LINE__,
-                        $content
+                        $content,
                     ]);
 
                 return false;
@@ -126,7 +126,7 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
                     yield new AvitoGetOrdersInfoDTO($order);
                 }
             }
-            
+
             if(false === $content['hasMore'])
             {
                 break;

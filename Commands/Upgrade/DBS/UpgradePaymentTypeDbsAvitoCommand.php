@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace BaksDev\Avito\Orders\Commands\Upgrade\DBS;
 
+use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentDbsAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileDbsAvito;
 use BaksDev\Payment\Entity\Payment;
 use BaksDev\Payment\Repository\ExistTypePayment\ExistTypePaymentInterface;
 use BaksDev\Payment\Type\Id\PaymentUid;
@@ -32,8 +34,6 @@ use BaksDev\Payment\UseCase\Admin\NewEdit\PaymentDTO;
 use BaksDev\Payment\UseCase\Admin\NewEdit\PaymentHandler;
 use BaksDev\Payment\UseCase\Admin\NewEdit\Trans\PaymentTransDTO;
 use BaksDev\Users\Profile\TypeProfile\Type\Id\TypeProfileUid;
-use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentDbsAvito;
-use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileDbsAvito;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -51,7 +51,8 @@ class UpgradePaymentTypeDbsAvitoCommand extends Command
         private readonly ExistTypePaymentInterface $existTypePayment,
         private readonly PaymentHandler $paymentHandler,
         private readonly TranslatorInterface $translator,
-    ) {
+    )
+    {
         parent::__construct();
     }
 

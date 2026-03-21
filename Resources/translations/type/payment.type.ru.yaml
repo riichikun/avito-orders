@@ -7,3 +7,7 @@ avito:
     name: 'DBS Avito'
     desc: 'Оплата DBS Avito'
 
+  pickup:
+    name: 'Самовывоз Avito'
+    desc: 'Оплата при получении'
+

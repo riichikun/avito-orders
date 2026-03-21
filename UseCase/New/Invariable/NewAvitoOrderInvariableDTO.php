@@ -27,6 +27,7 @@ namespace BaksDev\Avito\Orders\UseCase\New\Invariable;
 
 use BaksDev\Orders\Order\Entity\Invariable\OrderInvariableInterface;
 use BaksDev\Users\Profile\UserProfile\Type\Id\UserProfileUid;
+use BaksDev\Users\User\Entity\User;
 use BaksDev\Users\User\Type\Id\UserUid;
 use DateTimeImmutable;
 use Symfony\Component\Uid\Uuid;
@@ -95,9 +96,15 @@ final class NewAvitoOrderInvariableDTO implements OrderInvariableInterface
         return $this->usr;
     }
 
-    public function setUsr(?UserUid $usr): self
+    public function setUsr(UserUid|User|null $usr): self
     {
+        if($usr instanceof User)
+        {
+            $usr = $usr->getId();
+        }
+
         $this->usr = $usr;
+
         return $this;
     }
 

@@ -21,26 +21,37 @@
  *  THE SOFTWARE.
  */
 
-namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+declare(strict_types=1);
 
-use BaksDev\Avito\Orders\BaksDevAvitoOrdersBundle;
+namespace BaksDev\Avito\Orders\Type\DeliveryType;
 
-return static function(ContainerConfigurator $configurator) {
+use BaksDev\Delivery\Type\Id\Choice\Collection\TypeDeliveryInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-    $services = $configurator->services()
-        ->defaults()
-        ->autowire()
-        ->autoconfigure(); //->public();
+#[AutoconfigureTag('baks.delivery.type')]
+final class TypeDeliveryPickupAvito implements TypeDeliveryInterface
+{
+    public const string TYPE = '37cbcf50-cfa4-7617-afb1-9623251a3f3a';
 
-    $NAMESPACE = BaksDevAvitoOrdersBundle::NAMESPACE;
-    $PATH = BaksDevAvitoOrdersBundle::PATH;
+    /** Сортировка */
+    public static function priority(): int
+    {
+        return 441;
+    }
 
-    $services->load($NAMESPACE, $PATH)
-        ->exclude([
-            $PATH.'{Entity,Resources,Type}',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Message.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Result.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*DTO.php',
-            $PATH.'**'.DIRECTORY_SEPARATOR.'*Test.php',
-        ]);
-};
+    public function __toString(): string
+    {
+        return self::TYPE;
+    }
+
+    /** Возвращает значение (value) */
+    public function getValue(): string
+    {
+        return self::TYPE;
+    }
+
+    public static function equals(mixed $uid): bool
+    {
+        return self::TYPE === (string) $uid;
+    }
+}

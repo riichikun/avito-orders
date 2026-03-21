@@ -23,10 +23,14 @@
 
 declare(strict_types=1);
 
-namespace BaksDev\Avito\Orders\Commands\Upgrade\DBS;
+namespace BaksDev\Avito\Orders\Commands\Upgrade\Pickup;
 
-use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileDbsAvito;
+use BaksDev\Auth\Email\Type\Email\AccountEmail;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileFbsAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfilePickupAvito;
 use BaksDev\Core\Type\Field\InputField;
+use BaksDev\Field\Pack\Contact\Type\ContactField;
+use BaksDev\Field\Pack\Phone\Type\PhoneField;
 use BaksDev\Users\Profile\TypeProfile\Entity\TypeProfile;
 use BaksDev\Users\Profile\TypeProfile\Repository\ExistTypeProfile\ExistTypeProfileInterface;
 use BaksDev\Users\Profile\TypeProfile\Type\Id\TypeProfileUid;
@@ -45,16 +49,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsCommand(
-    name: 'baks:users-profile-type:avito-dbs',
-    description: 'Добавляет тип профилей пользователя DBS Avito',
-    aliases: ['baks:profile:avito-dbs']
+    name: 'baks:users-profile-type:avito-pickup',
+    description: 'Добавляет тип профилей пользователя Самовывоз Avito',
+    aliases: ['baks:profile:avito-pickup']
 )]
-class UpgradeProfileTypeDbsAvitoCommand extends Command
+class UpgradeProfileTypePickupAvitoCommand extends Command
 {
     public function __construct(
         private readonly ExistTypeProfileInterface $existTypeProfile,
         private readonly TranslatorInterface $translator,
-        private readonly TypeProfileHandler $profileHandler
+        private readonly TypeProfileHandler $profileHandler,
     )
     {
         parent::__construct();
@@ -63,7 +67,7 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
     /** Добавляет тип профиля Avito  */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $TypeProfileUid = new TypeProfileUid(TypeProfileDbsAvito::class);
+        $TypeProfileUid = new TypeProfileUid(TypeProfilePickupAvito::class);
 
         /** Проверяем наличие типа Avito */
         $exists = $this->existTypeProfile->isExistTypeProfile($TypeProfileUid);
@@ -71,10 +75,10 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
         if(!$exists)
         {
             $io = new SymfonyStyle($input, $output);
-            $io->text('Добавляем тип профиля Avito DBS');
+            $io->text('Добавляем тип профиля Самовывоз Avito');
 
             $TypeProfileDTO = new TypeProfileDTO();
-            $TypeProfileDTO->setSort(TypeProfileDbsAvito::priority());
+            $TypeProfileDTO->setSort(TypeProfileFbsAvito::priority());
             $TypeProfileDTO->setProfile($TypeProfileUid);
 
             $TypeProfileTranslateDTO = $TypeProfileDTO->getTranslate();
@@ -86,8 +90,8 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
              */
             foreach($TypeProfileTranslateDTO as $ProfileTrans)
             {
-                $name = $this->translator->trans('avito.dbs.name', domain: 'profile.type', locale: $ProfileTrans->getLocal()->getLocalValue());
-                $desc = $this->translator->trans('avito.dbs.desc', domain: 'profile.type', locale: $ProfileTrans->getLocal()->getLocalValue());
+                $name = $this->translator->trans('avito.pickup.name', domain: 'profile.type', locale: $ProfileTrans->getLocal()->getLocalValue());
+                $desc = $this->translator->trans('avito.pickup.desc', domain: 'profile.type', locale: $ProfileTrans->getLocal()->getLocalValue());
 
                 $ProfileTrans->setName($name);
                 $ProfileTrans->setDescription($desc);
@@ -102,8 +106,8 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
             /** @var SectionTransDTO $SectionTrans */
             foreach($SectionDTO->getTranslate() as $SectionTrans)
             {
-                $name = $this->translator->trans('avito.dbs.section.contact.name', domain: 'profile.type', locale: $SectionTrans->getLocal()->getLocalValue());
-                $desc = $this->translator->trans('avito.dbs.section.contact.desc', domain: 'profile.type', locale: $SectionTrans->getLocal()->getLocalValue());
+                $name = $this->translator->trans('avito.pickup.section.contact.name', domain: 'profile.type', locale: $SectionTrans->getLocal()->getLocalValue());
+                $desc = $this->translator->trans('avito.pickup.section.contact.desc', domain: 'profile.type', locale: $SectionTrans->getLocal()->getLocalValue());
 
                 $SectionTrans->setName($name);
                 $SectionTrans->setDescription($desc);
@@ -113,7 +117,10 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
 
             /* Добавляем поля для заполнения */
 
-            $fields = ['name', 'email', 'phone'];
+
+            /* Добавляем поля для заполнения */
+
+            $fields = ['name', 'phone'];
 
             foreach($fields as $sort => $field)
             {
@@ -122,30 +129,24 @@ class UpgradeProfileTypeDbsAvitoCommand extends Command
                 $SectionFieldDTO->setPublic(true);
                 $SectionFieldDTO->setRequired(true);
 
+                /** По умолчанию все поля input */
                 $SectionFieldDTO->setType(new InputField('input_field'));
 
                 if($field === 'name')
                 {
-                    $SectionFieldDTO->setType(new InputField('contact_field'));
-                }
-
-                if($field === 'email')
-                {
-                    $SectionFieldDTO->setType(new InputField('account_email'));
-                    $SectionFieldDTO->setRequired(false);
+                    $SectionFieldDTO->setType(new InputField(ContactField::TYPE));
                 }
 
                 if($field === 'phone')
                 {
-                    $SectionFieldDTO->setType(new InputField('phone_field'));
+                    $SectionFieldDTO->setType(new InputField(PhoneField::TYPE));
                 }
-
 
                 /** @var SectionFieldTransDTO $SectionFieldTrans */
                 foreach($SectionFieldDTO->getTranslate() as $SectionFieldTrans)
                 {
-                    $name = $this->translator->trans('avito.dbs.section.contact.field.'.$field.'.name', domain: 'profile.type', locale: $SectionFieldTrans->getLocal()->getLocalValue());
-                    $desc = $this->translator->trans('avito.dbs.section.contact.field.'.$field.'.desc', domain: 'profile.type', locale: $SectionFieldTrans->getLocal()->getLocalValue());
+                    $name = $this->translator->trans('section.contact.field.'.$field.'.name', domain: 'user.type', locale: $SectionFieldTrans->getLocal()->getLocalValue());
+                    $desc = $this->translator->trans('section.contact.field.'.$field.'.desc', domain: 'user.type', locale: $SectionFieldTrans->getLocal()->getLocalValue());
 
                     $SectionFieldTrans->setName($name);
                     $SectionFieldTrans->setDescription($desc);

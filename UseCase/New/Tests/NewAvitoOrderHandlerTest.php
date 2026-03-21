@@ -96,9 +96,9 @@ final class NewAvitoOrderHandlerTest extends KernelTestCase
 
         $newAvitoOrderDTO
             ->addProduct(new NewAvitoOrderProductDTO()
-            ->setArticle('test')
-            ->setProduct(new ProductEventUid())
-        );
+                ->setArticle('test')
+                ->setProduct(new ProductEventUid()),
+            );
 
         $newAvitoOrderDTO
             ->getUsr()

@@ -28,11 +28,16 @@ namespace BaksDev\Avito\Orders\Messenger\Schedules\NewOrders;
 use BaksDev\Avito\Orders\Api\Get\OrdersInfo\AvitoGetOrdersInfoDTO;
 use BaksDev\Avito\Orders\Api\Get\OrdersInfo\AvitoGetOrdersInfoRequest;
 use BaksDev\Avito\Orders\Api\Get\OrdersInfo\Product\AvitoGetOrdersInfoProductDTO;
+use BaksDev\Avito\Orders\Schedule\NewOrders\NewOrdersSchedule;
 use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryDbsAvito;
 use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryFbsAvito;
+use BaksDev\Avito\Orders\Type\DeliveryType\TypeDeliveryPickupAvito;
 use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentDbsAvito;
 use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentFbsAvito;
+use BaksDev\Avito\Orders\Type\PaymentType\TypePaymentPickupAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileDbsAvito;
 use BaksDev\Avito\Orders\Type\ProfileType\TypeProfileFbsAvito;
+use BaksDev\Avito\Orders\Type\ProfileType\TypeProfilePickupAvito;
 use BaksDev\Avito\Orders\UseCase\New\NewAvitoOrderDTO;
 use BaksDev\Avito\Orders\UseCase\New\NewAvitoOrderHandler;
 use BaksDev\Avito\Orders\UseCase\New\Products\Items\NewAvitoOrderProductItemDTO;
@@ -41,6 +46,7 @@ use BaksDev\Avito\Orders\UseCase\New\User\Delivery\Field\NewAvitoOrderDeliveryFi
 use BaksDev\Avito\Orders\UseCase\New\User\UserProfile\Value\NewAvitoUserProfileValueDTO;
 use BaksDev\Avito\Repository\AllTokensByProfile\AvitoTokensByProfileInterface;
 use BaksDev\Avito\Type\Id\AvitoTokenUid;
+use BaksDev\Contacts\Region\Repository\PickupByGeolocation\PickupByGeolocationInterface;
 use BaksDev\Core\Deduplicator\DeduplicatorInterface;
 use BaksDev\Core\Type\Field\InputField;
 use BaksDev\Delivery\Repository\CurrentDeliveryEvent\CurrentDeliveryEventInterface;
@@ -64,26 +70,24 @@ use BaksDev\Users\Profile\UserProfile\Repository\UserByUserProfile\UserByUserPro
 use BaksDev\Users\Profile\UserProfile\Repository\UserProfileById\UserProfileByIdInterface;
 use BaksDev\Users\Profile\UserProfile\Repository\UserProfileById\UserProfileResult;
 use BaksDev\Users\Profile\UserProfile\Type\Id\UserProfileUid;
-use BaksDev\Avito\Orders\Schedule\NewOrders\NewOrdersSchedule;
+use BaksDev\Users\User\Entity\User;
 use DateTimeImmutable;
+use Generator;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Generator;
 
 #[AsMessageHandler(priority: 0)]
 final readonly class NewAvitoOrdersScheduleHandler
 {
-    private UserProfileUid $profile;
-
     public function __construct(
         #[Target('avitoOrdersLogger')] private LoggerInterface $Logger,
         private AvitoGetOrdersInfoRequest $AvitoGetOrdersInfoRequest,
         private NewAvitoOrderHandler $AvitoOrderHandler,
         private AvitoTokensByProfileInterface $AvitoTokensByProfile,
         private DeduplicatorInterface $Deduplicator,
-        private YandexMarketAddressRequest $avitoAddressRequest,
+        private YandexMarketAddressRequest $YandexMarketAddressRequest,
         private UserProfileByIdInterface $UserProfileByIdRepository,
         private UserByUserProfileInterface $UserByUserProfileRepository,
         private ProductConstByArticleInterface $ProductConstByArticleRepository,
@@ -91,14 +95,11 @@ final readonly class NewAvitoOrdersScheduleHandler
         private FieldByDeliveryChoiceInterface $deliveryFields,
         private CurrentDeliveryEventInterface $currentDeliveryEvent,
         private ExistsOrderNumberInterface $ExistsOrderNumberRepository,
-    )
-    {}
+        private PickupByGeolocationInterface $pickupByGeolocation,
+    ) {}
 
     public function __invoke(NewAvitoOrdersScheduleMessage $message): void
     {
-        $this->profile = $message->getProfile();
-
-
         /** Получаем все токены профиля */
 
         $tokensByProfile = $this->AvitoTokensByProfile
@@ -145,7 +146,7 @@ final readonly class NewAvitoOrdersScheduleHandler
                 continue;
             }
 
-            $this->ordersCreate($orders, $avitoTokenUid);
+            $this->ordersCreate($orders, $avitoTokenUid, $message->getProfile());
 
             /** Удаляем дедубликатор обновления */
             $Deduplicator->delete();
@@ -153,7 +154,7 @@ final readonly class NewAvitoOrdersScheduleHandler
     }
 
     /** @param Generator<NewAvitoOrderDTO> $orders */
-    private function ordersCreate(Generator $orders, AvitoTokenUid $token): void
+    private function ordersCreate(Generator $orders, AvitoTokenUid $token, UserProfileUid $profile): void
     {
         /** @var AvitoGetOrdersInfoDTO $avitoGetOrdersInfoDTO */
         foreach($orders as $avitoGetOrdersInfoDTO)
@@ -162,7 +163,7 @@ final readonly class NewAvitoOrdersScheduleHandler
             $Deduplicator = $this->Deduplicator
                 ->namespace('avito-orders')
                 ->deduplication([
-                    $avitoGetOrdersInfoDTO->getPosting(),
+                    $avitoGetOrdersInfoDTO->getPostingNumber(),
                     self::class,
                 ]);
 
@@ -171,57 +172,55 @@ final readonly class NewAvitoOrdersScheduleHandler
                 continue;
             }
 
+            $User = $this->UserByUserProfileRepository
+                ->forProfile($profile)
+                ->find();
 
-            /** Проверяем наличие заказа в базе по постингу на случай, если дедупликатор не отсеял существующий заказ */
-            $result = $this->ExistsOrderNumberRepository->isExists($avitoGetOrdersInfoDTO->getPosting());
-
-            if(true === $result)
+            if(false === ($User instanceof User))
             {
-                return;
+                // Пользователь по профилю не найден;
+                continue;
+
+            }
+
+
+            /**
+             * Пропускаем, если заказ уже существует в системе
+             */
+
+            $isExists = $this->ExistsOrderNumberRepository->isExists($avitoGetOrdersInfoDTO->getPostingNumber());
+
+            if($isExists)
+            {
+                continue;
             }
 
 
             /** Создаем и заполняем DTO нового заказа */
             $avitoOrderDTO = new NewAvitoOrderDTO();
 
-
             /**
              * Invariable
              */
 
-            $user = $this->UserByUserProfileRepository
-                ->forProfile($this->profile)
-                ->find();
-
-            if($user === false)
-            {
-                continue;
-                // return 'Пользователь по профилю не найден';
-            }
-
             $avitoOrderDTO
                 ->getInvariable()
                 ->setCreated($avitoGetOrdersInfoDTO->getCreationDate() ?: new DateTimeImmutable('now'))
-                ->setProfile($this->profile)
+                ->setProfile($profile)
                 ->setToken($token)
-                ->setNumber('A-'.$avitoGetOrdersInfoDTO->getId()) // помечаем заказ префиксом Y
-                ->setUsr($user->getId());
+                ->setNumber('A-'.$avitoGetOrdersInfoDTO->getOrderNumber())
+                ->setUsr($User);
 
 
             /** Posting */
             $avitoOrderDTO
                 ->getPosting()
-                ->setValue('Y-'.$avitoGetOrdersInfoDTO->getPosting());
-
-
-            /**
-             * Created
-             */
-            $avitoOrderDTO->setCreated($avitoGetOrdersInfoDTO->getCreationDate() ?: new DateTimeImmutable('now'));
+                ->setValue('A-'.$avitoGetOrdersInfoDTO->getPostingNumber());
 
 
             /**
              * Продукция
+             *
              * @var AvitoGetOrdersInfoProductDTO $product
              */
             foreach($avitoGetOrdersInfoDTO->getProducts() as $product)
@@ -237,7 +236,7 @@ final readonly class NewAvitoOrdersScheduleHandler
                     /** Если какой-то продукт для данного заказа не был найден - пропускаем такой заказ */
                     $this->Logger->warning(
                         sprintf('Артикул товара %s не найден', $product->getArticle()),
-                        [self::class.':'.__LINE__]
+                        [self::class.':'.__LINE__],
                     );
                     continue 2;
                 }
@@ -251,7 +250,7 @@ final readonly class NewAvitoOrdersScheduleHandler
                     ->setProduct($productData->getEvent())
                     ->setOffer($productData->getOffer())
                     ->setVariation($productData->getVariation())
-                    ->setModification($productData->getModification())
+                    ->setModification($productData->getModification()),
                 );
 
 
@@ -275,46 +274,68 @@ final readonly class NewAvitoOrdersScheduleHandler
             }
 
 
-            /**
-             * User
-             * Если удалось получить адрес по API - значит заказ DSB, в противном случае - FBS
-             */
-
-            /** Способ оплаты */
-            $payment = new PaymentUid(false === empty($avitoGetOrdersInfoDTO->getAddress()) ? TypePaymentDbsAvito::class : TypePaymentFbsAvito::class);
-            $avitoOrderDTO
-                ->getUsr()
-                ->getPayment()
-                ->setPayment($payment);
-
-            /** Способ доставки Avito */
-            $delivery = new DeliveryUid(false === empty($avitoGetOrdersInfoDTO->getAddress()) ? TypeDeliveryDbsAvito::class : TypeDeliveryFbsAvito::class);
+            $OrderProfileDTO = $avitoOrderDTO->getUsr()->getUserProfile();
 
             /**
-             * API возвращает данные по адресам только для DBS. Для FBS можно воспользоваться адресом профиля в системе
+             * Тип профиля пользователя
              */
+
+            $profile_type = match ($avitoGetOrdersInfoDTO->getType())
+            {
+                'pvz' => TypeProfileFbsAvito::class,
+                'dbs', 'rdbs' => TypeProfileDbsAvito::class,
+                default => TypeProfilePickupAvito::class,
+            };
+
+            $Profile = new TypeProfileUid($profile_type);
+            $OrderProfileDTO->setType($Profile);
+
+
+            /**
+             * Способ оплаты
+             */
+
+            $OrderPaymentDTO = $avitoOrderDTO->getUsr()->getPayment();
+
+            $payment_type = match ($avitoGetOrdersInfoDTO->getType())
+            {
+                'pvz' => TypePaymentFbsAvito::class,
+                'dbs', 'rdbs' => TypePaymentDbsAvito::class,
+                default => TypePaymentPickupAvito::class,
+            };
+
+            $payment = new PaymentUid($payment_type);
+            $OrderPaymentDTO->setPayment($payment);
+
+
+            /**
+             * Способ доставки Avito
+             */
+
+            $orderDeliveryDTO = $avitoOrderDTO->getUsr()->getDelivery();
+
+            $delivery_type = match ($avitoGetOrdersInfoDTO->getType())
+            {
+                'pvz' => TypeDeliveryFbsAvito::class,
+                'dbs', 'rdbs' => TypeDeliveryDbsAvito::class,
+                default => TypeDeliveryPickupAvito::class,
+            };
+
+            $delivery = new DeliveryUid($delivery_type);
             $address = $avitoGetOrdersInfoDTO->getAddress();
-            if(true === empty($address))
-            {
-                $userProfileByIdResult = $this->UserProfileByIdRepository
-                    ->profile($this->profile)
-                    ->find();
 
-                if(false === ($userProfileByIdResult instanceof UserProfileResult))
-                {
-                    continue;
-                }
+            $orderDeliveryDTO
+                ->setDelivery($delivery)
+                ->setDeliveryDate($avitoGetOrdersInfoDTO->getDeliveryDate());
 
-                $address = $userProfileByIdResult->getLocation();
-            }
 
             /**
-             * Получим данные для заполнения координат по адресу - если адрес был возвращен по API - находим по нему
-             * координаты; в ином случае используем данные из профиля
+             * Получим данные для заполнения координат по адресу - если адрес был возвращен по API
+             * - находим по нему координаты;
              */
-            if(false === empty($avitoGetOrdersInfoDTO->getAddress()))
+            if(false === empty($address))
             {
-                $avitoAddressResult = $this->avitoAddressRequest->getAddress($address);
+                $avitoAddressResult = $this->YandexMarketAddressRequest->getAddress($address);
 
                 if(true === empty($avitoAddressResult))
                 {
@@ -323,58 +344,35 @@ final readonly class NewAvitoOrdersScheduleHandler
 
                 $latitude = $avitoAddressResult->getLatitude();
                 $longitude = $avitoAddressResult->getLongitude();
+                $address = $avitoAddressResult->getAddress();
+
+                $orderDeliveryDTO
+                    ->setAddress($address)
+                    ->setLatitude($latitude)
+                    ->setLongitude($longitude);
             }
-            else
+
+
+            /** Если адрес не указан, либо Самовывоз - присваиваем адрес профиля */
+            if(true === empty($address) || $delivery->equals(TypeDeliveryPickupAvito::class))
             {
+                $userProfileByIdResult = $this->UserProfileByIdRepository
+                    ->profile($profile)
+                    ->find();
+
+                if(false === ($userProfileByIdResult instanceof UserProfileResult))
+                {
+                    continue;
+                }
+
+                $address = $userProfileByIdResult->getLocation();
                 $latitude = $userProfileByIdResult->getLatitude();
                 $longitude = $userProfileByIdResult->getLongitude();
-            }
 
-            $avitoOrderDTO
-                ->getUsr()
-                ->getDelivery()
-                ->setDelivery($delivery)
-                ->setAddress($address)
-                ->setDeliveryDate($avitoGetOrdersInfoDTO->getDeliveryDate())
-                ->setLatitude($latitude)
-                ->setLongitude($longitude);
-
-
-            $OrderProfileDTO = $avitoOrderDTO->getUsr()->getUserProfile();
-            $OrderPaymentDTO = $avitoOrderDTO->getUsr()->getPayment();
-            $OrderDeliveryDTO = $avitoOrderDTO->getUsr()->getDelivery();
-
-            if(false === empty($avitoGetOrdersInfoDTO->getAddress()))
-            {
-                /** Тип профиля FBS Avito Market */
-                $Profile = new TypeProfileUid(TypeProfileFbsAvito::class);
-
-                $OrderProfileDTO?->setType($Profile);
-
-                /** Способ доставки Avito Market (FBS Avito Market) */
-                $Delivery = new DeliveryUid(TypeDeliveryFbsAvito::class);
-                $OrderDeliveryDTO->setDelivery($Delivery);
-
-                /** Способ оплаты FBS Avito Market */
-                $Payment = new PaymentUid(TypePaymentFbsAvito::class);
-                $OrderPaymentDTO->setPayment($Payment);
-            }
-
-
-            if(true === empty($avitoGetOrdersInfoDTO->getAddress()))
-            {
-                /** Тип профиля FBS Avito */
-                $Profile = new TypeProfileUid(TypeProfileFbsAvito::class);
-
-                $OrderProfileDTO?->setType($Profile);
-
-                /** Способ доставки Avito (FBS Avito) */
-                $Delivery = new DeliveryUid(TypeDeliveryFbsAvito::class);
-                $OrderDeliveryDTO->setDelivery($Delivery);
-
-                /** Способ оплаты FBS Avito */
-                $Payment = new PaymentUid(TypePaymentFbsAvito::class);
-                $OrderPaymentDTO->setPayment($Payment);
+                $orderDeliveryDTO
+                    ->setAddress($address)
+                    ->setLatitude($latitude)
+                    ->setLongitude($longitude);
             }
 
 
@@ -411,7 +409,7 @@ final readonly class NewAvitoOrdersScheduleHandler
         }
     }
 
-    public function fillProfile(NewAvitoOrderDTO $command): void
+    private function fillProfile(NewAvitoOrderDTO $command): void
     {
         if(empty($command->getBuyer()))
         {
@@ -464,57 +462,64 @@ final readonly class NewAvitoOrdersScheduleHandler
         }
     }
 
-    public function fillDelivery(NewAvitoOrderDTO $command, AvitoGetOrdersInfoDTO $avitoGetOrdersInfoDTO): void
+    private function fillDelivery(NewAvitoOrderDTO $command, AvitoGetOrdersInfoDTO $avitoGetOrdersInfoDTO): void
     {
-        $OrderDeliveryDTO = $command->getUsr()->getDelivery();
+        $orderDeliveryDTO = $command->getUsr()->getDelivery();
 
 
         /**
          * Определяем свойства доставки и присваиваем адрес
          */
 
-        $fields = $this->deliveryFields->fetchDeliveryFields($OrderDeliveryDTO->getDelivery());
+        $fields = $this->deliveryFields->fetchDeliveryFields($orderDeliveryDTO->getDelivery());
 
 
         /** Указываем адрес доставки */
 
         if($fields)
         {
-            $address_field = array_filter($fields, function($v) {
+            $addressField = array_filter($fields, static function($v) {
                 /** @var InputField $InputField */
                 return $v->getType()->getType() === 'address_field';
             });
 
-            $address_field = current($address_field);
+            $addressField = current($addressField);
 
-            if($address_field)
+            if($addressField)
             {
-                $OrderDeliveryFieldDTO = new NewAvitoOrderDeliveryFieldDTO();
-                $OrderDeliveryFieldDTO->setField($address_field);
-                $OrderDeliveryFieldDTO->setValue($OrderDeliveryDTO->getAddress());
-                $OrderDeliveryDTO->addField($OrderDeliveryFieldDTO);
+                $orderDeliveryFieldDTO = new NewAvitoOrderDeliveryFieldDTO();
+                $orderDeliveryFieldDTO->setField($addressField);
+                $orderDeliveryFieldDTO->setValue($orderDeliveryDTO->getAddress());
+                $orderDeliveryDTO->addField($orderDeliveryFieldDTO);
             }
 
-
             /** При самовывозе указываем ПВЗ */
-            if(false === empty($avitoGetOrdersInfoDTO->getPvzAddress()))
+            if($avitoGetOrdersInfoDTO->getType() === 'cnc')
             {
-                $contacts_region = array_filter($fields, function($v) {
+                $contactsRegion = array_filter($fields, static function($v) {
                     /** @var InputField $InputField */
                     return $v->getType()->getType() === 'contacts_region_type';
                 });
 
-                $contacts_field = current($contacts_region);
+                $contactsField = current($contactsRegion);
 
-                if($contacts_field)
+                if($contactsField)
                 {
-                    $OrderDeliveryFieldDTO = new NewAvitoOrderDeliveryFieldDTO();
-                    $OrderDeliveryFieldDTO->setField($contacts_field);
+                    $orderDeliveryFieldDTO = new NewAvitoOrderDeliveryFieldDTO();
+                    $orderDeliveryFieldDTO->setField($contactsField);
 
+                    /** Определяем по геолокации ПВЗ */
+                    $pickupByGeolocationDTO = $this->pickupByGeolocation
+                        ->latitude($orderDeliveryDTO->getLatitude())
+                        ->longitude($orderDeliveryDTO->getLongitude())
+                        ->execute();
 
-                    $OrderDeliveryFieldDTO->setValue((string) $avitoGetOrdersInfoDTO->getPvzAddress());
+                    if($pickupByGeolocationDTO)
+                    {
+                        $orderDeliveryFieldDTO->setValue((string) $pickupByGeolocationDTO->getId());
+                    }
 
-                    $OrderDeliveryDTO->addField($OrderDeliveryFieldDTO);
+                    $orderDeliveryDTO->addField($orderDeliveryFieldDTO);
                 }
             }
         }
@@ -524,19 +529,20 @@ final readonly class NewAvitoOrdersScheduleHandler
          * Присваиваем активное событие доставки
          */
 
-        $DeliveryEventUid = $this->currentDeliveryEvent
-            ->forDelivery($OrderDeliveryDTO->getDelivery())
+        $deliveryEventUid = $this->currentDeliveryEvent
+            ->forDelivery($orderDeliveryDTO->getDelivery())
             ->getId();
 
-        if(false === $DeliveryEventUid instanceof DeliveryEventUid)
+        if(false === $deliveryEventUid instanceof DeliveryEventUid)
         {
-
             throw new InvalidArgumentException(
-                sprintf('Способ доставки не найден! Выполните комманду Upgrade типа %s : ', $OrderDeliveryDTO->getDelivery()),
+                sprintf(
+                    'Способ доставки не найден! Выполните комманду Upgrade типа %s : ',
+                    $orderDeliveryDTO->getDelivery()
+                ),
             );
         }
 
-        $OrderDeliveryDTO->setEvent($DeliveryEventUid);
-
+        $orderDeliveryDTO->setEvent($deliveryEventUid);
     }
 }

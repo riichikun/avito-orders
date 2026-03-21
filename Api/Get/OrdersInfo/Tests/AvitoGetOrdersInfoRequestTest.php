@@ -65,7 +65,8 @@ final class AvitoGetOrdersInfoRequestTest extends KernelTestCase
             ->interval('1 day')
             ->findAll();
 
-        foreach ($ordersInfo as $item) {
+        foreach($ordersInfo as $item)
+        {
             self::assertInstanceOf(AvitoGetOrdersInfoDTO::class, $item);
 
             // Вызываем все геттеры
