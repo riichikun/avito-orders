@@ -48,6 +48,7 @@ use BaksDev\Delivery\Type\Event\DeliveryEventUid;
 use BaksDev\Delivery\Type\Id\DeliveryUid;
 use BaksDev\Field\Pack\Phone\Type\PhoneField;
 use BaksDev\Orders\Order\Entity\Order;
+use BaksDev\Orders\Order\Repository\ExistsOrderNumber\ExistsOrderNumberInterface;
 use BaksDev\Orders\Order\Repository\FieldByDeliveryChoice\FieldByDeliveryChoiceInterface;
 use BaksDev\Payment\Type\Id\PaymentUid;
 use BaksDev\Products\Product\Repository\CurrentProductByArticle\CurrentProductByBarcodeResult;
@@ -89,6 +90,7 @@ final readonly class NewAvitoOrdersScheduleHandler
         private FieldValueFormInterface $FieldValueRepository,
         private FieldByDeliveryChoiceInterface $deliveryFields,
         private CurrentDeliveryEventInterface $currentDeliveryEvent,
+        private ExistsOrderNumberInterface $ExistsOrderNumberRepository,
     )
     {}
 
@@ -117,7 +119,7 @@ final readonly class NewAvitoOrdersScheduleHandler
 
             $Deduplicator = $this->Deduplicator
                 ->namespace('avito-orders')
-                ->expiresAfter(NewOrdersSchedule::INTERVAL)
+                ->expiresAfter($message->getInterval() ?: NewOrdersSchedule::INTERVAL)
                 ->deduplication([self::class, (string) $avitoTokenUid]);
 
             if($Deduplicator->isExecuted())
@@ -134,7 +136,7 @@ final readonly class NewAvitoOrdersScheduleHandler
 
             $orders = $this->AvitoGetOrdersInfoRequest
                 ->forTokenIdentifier($avitoTokenUid)
-                ->interval(NewOrdersSchedule::INTERVAL)
+                ->interval($message->getInterval() ?: NewOrdersSchedule::INTERVAL)
                 ->findAll();
 
             if(false === $orders || false === $orders->valid())
@@ -167,6 +169,15 @@ final readonly class NewAvitoOrdersScheduleHandler
             if($Deduplicator->isExecuted())
             {
                 continue;
+            }
+
+
+            /** Проверяем наличие заказа в базе по постингу на случай, если дедупликатор не отсеял существующий заказ */
+            $result = $this->ExistsOrderNumberRepository->isExists($avitoGetOrdersInfoDTO->getPosting());
+
+            if(true === $result)
+            {
+                return;
             }
 
 

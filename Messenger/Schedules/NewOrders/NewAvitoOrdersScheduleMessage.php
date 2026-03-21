@@ -35,13 +35,25 @@ final readonly class NewAvitoOrdersScheduleMessage
      */
     private string $profile;
 
-    public function __construct(UserProfile|UserProfileUid|string $profile)
+    /**
+     * Интервал (если необходимо найти заказы за промежуток времени, не равный указанному в NewOrdersSchedule::INTERVAL)
+     * пример: '3 days'
+     */
+    private ?string $interval;
+
+    public function __construct(UserProfile|UserProfileUid|string $profile, ?string $interval = null)
     {
         $this->profile = (string) $profile;
+        $this->interval = $interval;
     }
 
     public function getProfile(): UserProfileUid
     {
         return new UserProfileUid($this->profile);
+    }
+
+    public function getInterval(): ?string
+    {
+        return $this->interval;
     }
 }
