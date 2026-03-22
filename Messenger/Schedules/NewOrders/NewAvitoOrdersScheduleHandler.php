@@ -166,20 +166,16 @@ final readonly class NewAvitoOrdersScheduleHandler
                     self::class,
                 ]);
 
+
             if($Deduplicator->isExecuted())
             {
                 continue;
             }
 
-            $User = $this->UserByUserProfileRepository
-                ->forProfile($profile)
-                ->find();
-
-            if(false === ($User instanceof User))
+            if($avitoGetOrdersInfoDTO->getStatus() !== 'on_confirmation')
             {
-                // Пользователь по профилю не найден;
+                $Deduplicator->save();
                 continue;
-
             }
 
             /**
@@ -190,9 +186,23 @@ final readonly class NewAvitoOrdersScheduleHandler
 
             if($isExists)
             {
+                $Deduplicator->save();
                 continue;
             }
 
+            $User = $this->UserByUserProfileRepository
+                ->forProfile($profile)
+                ->find();
+
+            if(false === ($User instanceof User))
+            {
+                $this->Logger->critical(
+                    'avito-orders: Пользователь по профилю не найден',
+                    [self::class.':'.__LINE__, (string) $profile],
+                );
+
+                continue;
+            }
 
             /** Создаем и заполняем DTO нового заказа */
             $avitoOrderDTO = new NewAvitoOrderDTO();
@@ -201,19 +211,21 @@ final readonly class NewAvitoOrdersScheduleHandler
              * Invariable
              */
 
+            $avitoOrderDTO->setCreated($avitoGetOrdersInfoDTO->getCreationDate());
+
             $avitoOrderDTO
                 ->getInvariable()
                 ->setCreated($avitoGetOrdersInfoDTO->getCreationDate() ?: new DateTimeImmutable('now'))
                 ->setProfile($profile)
                 ->setToken($token)
-                ->setNumber('A-'.$avitoGetOrdersInfoDTO->getOrderNumber())
+                ->setNumber($avitoGetOrdersInfoDTO->getOrderNumber())
                 ->setUsr($User);
 
 
             /** Posting */
             $avitoOrderDTO
                 ->getPosting()
-                ->setValue('A-'.$avitoGetOrdersInfoDTO->getPostingNumber());
+                ->setValue($avitoGetOrdersInfoDTO->getPostingNumber());
 
 
             /**
@@ -373,6 +385,7 @@ final readonly class NewAvitoOrdersScheduleHandler
                     ->setLongitude($longitude);
             }
 
+            $avitoOrderDTO->setComment($avitoGetOrdersInfoDTO->getComment());
 
             /** Присваиваем информацию о покупателе */
             $buyer = [];

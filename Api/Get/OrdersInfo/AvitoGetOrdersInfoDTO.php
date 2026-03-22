@@ -54,11 +54,26 @@ final class AvitoGetOrdersInfoDTO
 
     private ?string $comment = null;
 
+    private ?string $status = null;
+
 
     public function __construct(array $data)
     {
         $this->id = $data['id'];
         $this->creationDate = new DateTimeImmutable($data['createdAt']);
+
+
+        /**
+         * on_confirmation - ожидает подтверждения
+         * ready_to_ship - ждет отправки
+         * in_transit - в пути
+         * canceled - отменный заказ
+         * delivered - доставлен покупателю
+         * on_return - на возврате
+         * in_dispute - по заказу открыт спор
+         * closed - заказ закрыт
+         * */
+        $this->status = $data['status'];
 
 
         /**
@@ -80,7 +95,7 @@ final class AvitoGetOrdersInfoDTO
 
             $this->products->add(new AvitoGetOrdersInfoProductDTO(
                 preg_replace('/-KIT\d+$/', '', $item['id']),
-                new Money($item['prices']['total'] / $kit),
+                new Money($item['prices']['price'] / $kit),
                 $item['count'] * $kit,
             ));
         }
@@ -154,12 +169,12 @@ final class AvitoGetOrdersInfoDTO
 
     public function getPostingNumber(): ?string
     {
-        return $this->posting;
+        return 'A-'.$this->posting;
     }
 
     public function getOrderNumber(): ?string
     {
-        return $this->number;
+        return 'A-'.$this->number;
     }
 
     public function getDeliveryDate(): DateTimeImmutable
@@ -185,5 +200,10 @@ final class AvitoGetOrdersInfoDTO
     public function getComment(): ?string
     {
         return $this->comment;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
     }
 }

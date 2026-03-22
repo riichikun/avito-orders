@@ -123,7 +123,7 @@ class UpdateAvitoOrdersNewCommand extends Command
 
         foreach($profiles as $profile)
         {
-            if($profile->getAttr() === $questions[$key])
+            if($profile->getAttr().sprintf(' (%s)', $profile) === $questions[$key])
             {
                 /* Присваиваем профиль пользователя */
                 $UserProfileUid = $profile;
