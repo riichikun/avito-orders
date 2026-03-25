@@ -135,6 +135,11 @@ final class AvitoGetOrdersInfoDTO
             $this->address = $data['delivery']['courierInfo']['address'];
         }
 
+        if(isset($data['delivery']['terminalInfo']))
+        {
+            $this->address = $data['delivery']['terminalInfo']['address'];
+        }
+
         $this->comment = $data['delivery']['serviceName'] ?? null;
 
     }

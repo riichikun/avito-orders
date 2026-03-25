@@ -63,7 +63,7 @@ final class NewAvitoOrdersScheduleHandlerTest extends KernelTestCase
         AvitoTokenNewTest::setUpBeforeClass();
         new AvitoTokenNewTest('')->testNew();
         
-        $profileUid = $_SERVER['TEST_PROFILE'] ?? UserProfileUid::TEST;`
+        $profileUid = $_SERVER['TEST_PROFILE'] ?? UserProfileUid::TEST;
 
         $NewAvitoOrdersScheduleHandler = self::getContainer()->get(NewAvitoOrdersScheduleHandler::class);
         $NewAvitoOrdersScheduleHandler(new NewAvitoOrdersScheduleMessage($profileUid));
