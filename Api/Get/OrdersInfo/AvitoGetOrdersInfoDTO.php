@@ -56,7 +56,6 @@ final class AvitoGetOrdersInfoDTO
 
     private ?string $status = null;
 
-
     public function __construct(array $data)
     {
         $this->id = $data['id'];
@@ -133,14 +132,8 @@ final class AvitoGetOrdersInfoDTO
 
         if(isset($data['delivery']['courierInfo']))
         {
-            $this->address = $data['delivery']['courierInfo'];
+            $this->address = $data['delivery']['courierInfo']['address'];
         }
-
-        if(isset($data['delivery']['terminalInfo']))
-        {
-            $this->address = $data['delivery']['terminalInfo'];
-        }
-
 
         $this->comment = $data['delivery']['serviceName'] ?? null;
 

@@ -70,6 +70,14 @@ final class AvitoGetOrdersInfoRequest extends AvitoApi
     }
 
 
+    /** Вызываем метод, если необходимо найти только отменённые заказы */
+    public function getCanceled(): self
+    {
+        $this->status = 'canceled';
+        return $this;
+    }
+
+
     /**
      * Получение информации по заказам
      *
